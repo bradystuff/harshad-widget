@@ -99,8 +99,25 @@ def harshad_bases(n, max_base):
         await new Promise(r => setTimeout(r, 0)); // let UI update
 
         try {
-          const result = pyodide.runPython(`harshad_bases(${n}, ${maxb})`);
-          out.textContent = `Found ${result.length} bases up to ${maxb}:\n` + JSON.stringify(result);
+          const pyResult = pyodide.runPython(`harshad_bases(${n}, ${maxb})`);
+          const bases = pyResult.toJs ? pyResult.toJs() : Array.from(pyResult);
+          pyResult.destroy && pyResult.destroy();
+
+          // For large outputs, show first 500 bases with option to expand
+          const previewCount = 500;
+          let text = `Found ${bases.length} bases up to ${maxb}.`;
+          if (bases.length <= previewCount) {
+            text += `\nBases:\n${bases.join(', ')}`;
+            out.textContent = text;
+          } else {
+            const preview = bases.slice(0, previewCount).join(', ');
+            out.textContent = `${text}\nFirst ${previewCount} bases:\n${preview}`;
+            const more = document.createElement('button');
+            more.textContent = 'Show all bases';
+            more.style.marginTop = '10px';
+            more.onclick = () => { out.textContent = bases.join(', '); more.remove(); };
+            out.parentNode.insertBefore(more, out.nextSibling);
+          }
           show('Done.');
         } catch (e) {
           out.textContent = 'Error: ' + e;
